@@ -1,0 +1,159 @@
+---
+title: "SituacionProblema1.1"
+author: Equipo 1
+format:
+   html:
+     toc: true
+     html-math-method: katex
+     embed-resources: true
+     self-contained-math: true
+     df-print: kable
+editor: visual
+---
+
+# Situacion Problema
+
+### En base a la infomacion proporcionada por la Encuesta Origen Destino en Hogares de la Zona Metropolitana del Valle de México (EOD) 2017, se deben proporcionar respuestas a las siguientes Queries, usando el metodo de las redes DAG.
+
+1.  ¿Cuál es la probabilidad de que el tiempo de viaje sea menor a 20 minutos, dado que su medio de transporte fue el automóvil?
+2.  ¿Cuál es la probabilidad de que los viajes en Ciudad de México se hagan en medios no motorizados (caminar o bicicleta)?
+3.  ¿Cuál es la probabilidad de que un hogar de estrato medio bajo, utilicen más de 2 medios de transporte diferentes?
+4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
+
+Datos necesarios: - Tiempos de viaje por medio de transporte - Viajes en la ciudad de México por medio de transporte (motorizado/no motorizado) - \# de medios de transporte por estratro de hogar - Tiempos de viaje de hogar a escuela por transporte
+
+Relaciones de los datos: Viajes / Medio de transporte (1,2) Estrato hogar / \# de medios de transporte Tiempo de viaje / Origen / Destino
+
+```{r}
+#install.packages("bnlearn")
+library(bnlearn)
+```
+
+```{r}
+data = read.csv("../../data/tviaje.csv", stringsAsFactors = TRUE)
+head(data)
+```
+
+```{r}
+# Reemplaza todos los NA con 0
+data[is.na(data)] <- 0
+
+# Verifica que ya no haya NA
+sum(is.na(data))
+
+# 3) Guardar en un nuevo archivo CSV
+write.csv(
+  data,
+  "../../data/tviaje.csv",
+  row.names = FALSE
+)
+
+# 4) Confirmación
+cat("Archivo limpio guardado como tviaje_clean.csv\n")
+```
+
+```{r}
+data_1 = read.csv("../../data/tviaje.csv", stringsAsFactors = TRUE)
+head(data_1)
+```
+
+```{r}
+data$tiempo <- with(data,
+  (p5_10_1 * 60 + p5_10_2) - (p5_9_1 * 60 + p5_9_2)
+)
+data$tiempo[data$tiempo < 0] <- data$tiempo[data$tiempo < 0] + 1440
+```
+
+```{r}
+suppressPackageStartupMessages(library(bnlearn))
+
+# Quitar IDS
+data <- subset(data, select = -grep("^id_", names(data), ignore.case = TRUE))
+
+# Establecer tiempos "continuas"
+time_cols <- intersect(c("p5_9_1","p5_9_2","p5_10_1","p5_10_2"), names(data))
+
+# -------------------
+to_num <- function(x) if (is.factor(x)) as.numeric(as.character(x)) else as.numeric(x)
+
+# Tiempo convert
+data[time_cols] <- lapply(data[time_cols], to_num)
+
+# Calcular tiempo de viaje "tiempo"
+if (all(c("p5_9_1","p5_9_2","p5_10_1","p5_10_2") %in% names(data))) {
+  data$tiempo <- with(data, (p5_10_1*60 + p5_10_2) - (p5_9_1*60 + p5_9_2))
+  idx <- !is.na(data$tiempo) & data$tiempo < 0
+  data$tiempo[idx] <- data$tiempo[idx] + 1440
+} else {
+  data$tiempo <- NA_real_
+}
+
+if (length(time_cols)) {
+  for (cn in c(time_cols, "tiempo")) {
+    if (cn %in% names(data)) {
+      x <- data[[cn]]
+      if (!is.numeric(x)) x <- to_num(x)
+      x[is.na(x)] <- 0
+      data[[cn]] <- x
+    }
+  }
+}
+
+# NO-tiempo = factor
+non_time <- setdiff(names(data), c(time_cols, "tiempo"))
+data[non_time] <- lapply(data[non_time], function(x) {
+  if (!is.factor(x)) x <- factor(x)
+  x <- addNA(x)                              # añade nivel para NAs
+  lv <- levels(x); lv[is.na(lv)] <- "missing"
+  levels(x) <- lv
+  droplevels(x)
+})
+
+# Eliminar columnas constantes
+keep <- vapply(data, function(x) if (is.factor(x)) length(levels(x)) > 1 else TRUE, logical(1))
+data <- data[ , keep, drop = FALSE]
+
+# DAG mixta (discretas + continuas): BIC-CG
+dag <- hc(data, score = "bic-cg")
+dag
+
+```
+
+```{r}
+#install.packages("BiocManager")
+#BiocManager::install("Rgraphviz")
+
+graphviz.plot(dag, shape = "ellipse")
+```
+
+```{r}
+bn <- bn.fit(dag, data = data)
+```
+
+1.  ¿Cuál es la probabilidad de que el tiempo de viaje sea menor a 20 minutos, dado que su medio de transporte fue el automóvil?
+
+```{r}
+cpquery(bn, event = (tiempo < 20), evidence = (p5_14_01 == 1), n = 10^6)
+```
+
+2.  ¿Cuál es la probabilidad de que los viajes en Ciudad de México se hagan en medios no motorizados (caminar o bicicleta)?
+
+p5_14_14 = 1 (caminó) p5_14_07 = 1 (bicicleta)
+
+p5_7_7 = 9 (Origen CDMX) p5_12_7 = 9 (Destino CDMX)
+
+```{r}
+cpquery(bn, event = (p5_14_14 == 1 | p5_14_07 == 1), evidence = (p5_7_7 == 9 & p5_12_7 == 9), n = 10^6)
+```
+
+4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
+
+p5_6 == 1 (Origen Hogar) p5_11a == 2 (Destino Escuela)
+
+p5_14_01 == 1 (Coche)
+
+```{r}
+cpquery(bn, event = (tiempo > 60), evidence = (p5_6 == 1 & p5_11a == 2 & p5_14_01 == 1), n = 10^6)
+```
+
+En la query #3 necesitamos otra dag relacionada con otro documento csv
