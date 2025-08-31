@@ -1,0 +1,99 @@
+---
+title: "SituacionProblema1.1"
+author: Joshua Chaidez
+format:
+   html:
+     toc: true
+     html-math-method: katex
+     embed-resources: true
+     self-contained-math: true
+     df-print: kable
+editor: visual
+---
+
+# Situacion Problema
+
+### En base a la infomacion proporcionada por la Encuesta Origen Destino en Hogares de la Zona Metropolitana del Valle de México (EOD) 2017, se deben proporcionar respuestas a las siguientes Queries, usando el metodo de las redes DAG.
+
+1.  ¿Cuál es la probabilidad de que el tiempo de viaje sea menor a 20 minutos, dado que su medio de transporte fue el automóvil?
+2.  ¿Cuál es la probabilidad de que los viajes en Ciudad de México se hagan en medios no motorizados (caminar o bicicleta)?
+3.  ¿Cuál es la probabilidad de que un hogar de estrato medio bajo, utilicen más de 2 medios de transporte diferentes?
+4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
+
+Datos necesarios: - Tiempos de viaje por medio de transporte - Viajes en la ciudad de México por medio de transporte (motorizado/no motorizado) - \# de medios de transporte por estratro de hogar - Tiempos de viaje de hogar a escuela por transporte
+
+Relaciones de los datos: Viajes / Medio de transporte (1,2) Estrato hogar / \# de medios de transporte Tiempo de viaje / Origen / Destino
+
+```{r}
+library(bnlearn)
+```
+
+```{r}
+data = read.csv("../data/tviaje_clean.csv", stringsAsFactors = TRUE)
+#head(data)
+```
+
+```{r}
+# Columnas discretas (todas excepto tiempo)
+disc_cols <- c("auto","colectivo","uber_etc","taxi","metro","bici","moto","caminar",
+               "entidad_origen","entidad_destino","tipo_origen","tipo_destino",
+               "estrato")
+
+# Continua
+cont_cols <- c("tiempo")
+
+# 1) Convertir discretas a factor
+data[disc_cols] <- lapply(data[disc_cols], factor)
+
+# 2) Convertir continua a numeric
+data[cont_cols] <- lapply(data[cont_cols], function(x) as.numeric(as.character(x)))
+
+# 3) Evitar arcos de continuas -> discretas
+blk <- tiers2blacklist(list(disc_cols, cont_cols))
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+# DAG mixta (discretas + continuas): BIC-CG
+dag <- hc(data, score = "bic-cg", blacklist = blk)
+dag
+```
+
+```{r}
+graphviz.plot(dag, shape = "ellipse")
+```
+
+```{r}
+bn <- bn.fit(dag, data = data)
+```
+
+1.  ¿Cuál es la probabilidad de que el tiempo de viaje sea menor a 20 minutos, dado que su medio de transporte fue el automóvil?
+
+```{r}
+cpquery(bn, event = (tiempo < 20), evidence = (auto == 1), n = 10^6)
+```
+
+2.  ¿Cuál es la probabilidad de que los viajes en Ciudad de México se hagan en medios no motorizados (caminar o bicicleta)?
+
+p5_14_14 = 1 (caminó) p5_14_07 = 1 (bicicleta)
+
+p5_7_7 = 9 (Origen CDMX) p5_12_7 = 9 (Destino CDMX)
+
+```{r}
+cpquery(bn, event = (caminar == 1 | bici == 1), evidence = (entidad_origen == 9 & entidad_destino == 9), n = 10^6)
+```
+
+4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
+
+p5_6 == 1 (Origen Hogar) p5_11a == 2 (Destino Escuela)
+
+p5_14_01 == 1 (Coche)
+
+```{r}
+cpquery(bn, event = (tiempo > 60), evidence = (tipo_origen == 1 & tipo_destino == 2 & auto == 1), n = 10^6)
+```
+
+En la query #3 necesitamos otra dag relacionada con otro documento csv
