@@ -29,7 +29,7 @@ library(bnlearn)
 ```
 
 ```{r}
-data = read.csv("data/tviaje.csv", stringsAsFactors = TRUE)
+data = read.csv("../../data/tviaje.csv", stringsAsFactors = TRUE)
 head(data)
 ```
 
@@ -43,7 +43,7 @@ sum(is.na(data))
 # 3) Guardar en un nuevo archivo CSV
 write.csv(
   data,
-  "data/tviaje_clean.csv",
+  "../data/tviaje_clean.csv",
   row.names = FALSE
 )
 
@@ -52,7 +52,7 @@ cat("Archivo limpio guardado como tviaje_clean.csv\n")
 ```
 
 ```{r}
-data_1 = read.csv("data/tviaje_clean.csv", stringsAsFactors = TRUE)
+data_1 = read.csv("../data/tviaje_clean.csv", stringsAsFactors = TRUE)
 head(data_1)
 ```
 
