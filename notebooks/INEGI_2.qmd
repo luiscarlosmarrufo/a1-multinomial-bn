@@ -195,7 +195,11 @@ cpquery(bn, event = (caminar == 1 | bici == 1), evidence = (entidad_origen == 9 
 
 3.  ¿Cuál es la probabilidad de que un hogar de estrato medio bajo, utilicen más de 2 medios de transporte diferentes?
 
-<!-- -->
+```{r}
+cpquery(bn, event = ((auto==1) + (colectivo==1) + (uber_etc==1) + (taxi==1) + (metro==1) + (bici==1) + (moto==1) + (caminar==1)) >= 3,
+        evidence = (estrato == 2), n = 10^6
+)
+```
 
 4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
 
