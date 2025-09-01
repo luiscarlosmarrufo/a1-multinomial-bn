@@ -78,22 +78,25 @@ cpquery(bn, event = (tiempo < 20), evidence = (auto == 1), n = 10^6)
 
 2.  ¿Cuál es la probabilidad de que los viajes en Ciudad de México se hagan en medios no motorizados (caminar o bicicleta)?
 
-p5_14_14 = 1 (caminó) p5_14_07 = 1 (bicicleta)
+caminar= 1 (verdadero) bici= 1 (verdadero)
 
-p5_7_7 = 9 (Origen CDMX) p5_12_7 = 9 (Destino CDMX)
+entidad_origen = 9 (CDMX) entidad_destino= 9 (CDMX)
 
 ```{r}
 cpquery(bn, event = (caminar == 1 | bici == 1), evidence = (entidad_origen == 9 & entidad_destino == 9), n = 10^6)
+
 ```
+
+3.  ¿Cuál es la probabilidad de que un hogar de estrato medio bajo, utilicen más de 2 medios de transporte diferentes?
+
+<!-- -->
 
 4.  ¿Cuál es la probabilidad de que el viaje del hogar a la escuela dure más de 60 minutos si la persona viaja en coche?
 
-p5_6 == 1 (Origen Hogar) p5_11a == 2 (Destino Escuela)
+    tipo_origen== 1 (Hogar) tipo_destino == 2 (Escuela)
 
-p5_14_01 == 1 (Coche)
+coche == 1 (verdadero)
 
 ```{r}
 cpquery(bn, event = (tiempo > 60), evidence = (tipo_origen == 1 & tipo_destino == 2 & auto == 1), n = 10^6)
 ```
-
-En la query #3 necesitamos otra dag relacionada con otro documento csv
