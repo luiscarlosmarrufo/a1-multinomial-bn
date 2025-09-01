@@ -57,6 +57,101 @@ head(data)
 ```
 
 ```{r}
+# estructura DAGs planteadas
+
+a = c(
+  "moto", "tiempo",
+  "estrato", "tiempo",
+  "taxi", "tiempo",
+  "auto", "tiempo",
+  "entidad_origen", "tiempo",
+  "entidad_destino", "tiempo",
+  "caminar", "moto",
+  "metro", "tipo_destino",
+  "entidad_destino", "tipo_destino",
+  "entidad_destino", "metro",
+  "tipo_origen", "colectivo",
+  "entidad_origen", "tipo_destino",
+  "uber_etc", "taxi",
+  "auto", "estrato"
+)
+
+b = c(
+  "entidad_origen", "colectivo",
+  "entidad_destino", "colectivo",
+  "tipo_origen", "colectivo",
+  "tipo_origen", "metro",
+  "entidad_destino", "caminar",
+  "entidad_origen", "caminar",
+  "estrato", "entidad_origen",
+  "entidad_destino", "uber_etc",
+  "estrato", "uber_etc",
+  "entidad_origen", "uber_etc",
+  "bici", "tipo_destino",
+  "entidad_origen", "tiempo",
+  "auto", "tiempo",
+  "moto", "tiempo",
+  "entidad_destino", "tiempo",
+  "uber_etc", "tiempo",
+  "metro", "tiempo",
+  "entidad_destino", "bici",
+  "estrato", "auto",
+  "estrato", "moto",
+  "entidad_destino", "taxi",
+  "estrato", "taxi"
+)
+
+c = c(
+  "entidad_destino", "colectivo",
+  "entidad_origen", "colectivo",
+  "auto", "tiempo",
+  "taxi", "tiempo",
+  "metro", "tiempo",
+  "moto", "tiempo",
+  "uber_etc", "taxi",
+  "metro", "taxi",
+  "caminar", "metro",
+  "entidad_destino", "tipo_destino",
+  "entidad_origen", "bici",
+  "entidad_origen", "moto",
+  "estrato", "moto",
+  "estrato", "auto",
+  "estrato", "tipo_origen",
+  "entidad_origen", "tipo_origen"
+)
+```
+
+```{r}
+arc_set_a <- matrix(a, byrow = TRUE, ncol = 2, dimnames = list(NULL, c("from", "to")))
+arc_set_b <- matrix(b, byrow = TRUE, ncol = 2, dimnames = list(NULL, c("from", "to")))
+arc_set_c <- matrix(c, byrow = TRUE, ncol = 2, dimnames = list(NULL, c("from", "to")))
+```
+
+```{r}
+dag_a = empty.graph(nodes = c(disc_cols, cont_cols))
+dag_b = dag_a
+dag_c = dag_a
+```
+
+```{r}
+arcs(dag_a) <- arc_set_a
+arcs(dag_b) <- arc_set_b
+arcs(dag_c) <- arc_set_c
+```
+
+```{r}
+graphviz.plot(dag_a, shape = "ellipse")
+```
+
+```{r}
+graphviz.plot(dag_b, shape = "ellipse")
+```
+
+```{r}
+graphviz.plot(dag_c, shape = "ellipse")
+```
+
+```{r}
 # DAG mixta (discretas + continuas): BIC-CG
 dag <- hc(data, score = "bic-cg", blacklist = blk)
 dag
@@ -64,6 +159,17 @@ dag
 
 ```{r}
 graphviz.plot(dag, shape = "ellipse")
+```
+
+```{r}
+scores <- c(
+  dag_a = score(dag_a, data = data, type = "bic-cg"),
+  dag_b = score(dag_b, data = data, type = "bic-cg"),
+  dag_c = score(dag_c, data = data, type = "bic-cg"),
+  dag = score(dag, data = data, type = "bic-cg")
+)
+
+scores
 ```
 
 ```{r}
