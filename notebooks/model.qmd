@@ -1,6 +1,6 @@
 ---
-title: "SituacionProblema1.1"
-author: Joshua Chaidez
+title: "Modelación"
+author: Equipo 1
 format:
    html:
      toc: true
@@ -34,16 +34,9 @@ data = read.csv("../data/tviaje_clean.csv", stringsAsFactors = TRUE)
 ```
 
 ```{r}
-# Columnas discretas (todas excepto tiempo)
-disc_cols <- c("auto","colectivo","uber_etc","taxi","metro","bici","moto","caminar",
-               "entidad_origen","entidad_destino","tipo_origen","tipo_destino",
-               "estrato","tiempo")
-
-# Continua
-#cont_cols <- c("tiempo")
-
-# 1) Convertir discretas a factor
-data[disc_cols] <- lapply(data[disc_cols], factor)
+# Todo a factor
+data[] <- lapply(data, factor)
+head(data)
 
 ```
 
@@ -53,10 +46,6 @@ head(data["tiempo"])
 
 ```{r}
 summary(data["tiempo"])
-```
-
-```{r}
-head(data)
 ```
 
 ```{r}
@@ -131,7 +120,9 @@ arc_set_c <- matrix(c, byrow = TRUE, ncol = 2, dimnames = list(NULL, c("from", "
 ```
 
 ```{r}
-dag_a = empty.graph(nodes = c(disc_cols))
+nodes <- names(data)
+
+dag_a <- empty.graph(nodes = nodes)
 dag_b = dag_a
 dag_c = dag_a
 ```
@@ -213,7 +204,7 @@ cpquery(bn, event = (caminar == 1 | bici == 1), evidence = (entidad_origen == 9 
 
 ```{r}
 set.seed(1809)
-cpquery(bn, event = ((auto==1) + (colectivo==1) + (uber_etc==1) + (taxi==1) + (metro==1) + (bici==1) + (moto==1) + (caminar==1)) >= 3,
+cpquery(bn, event = ((auto==1) + (colectivo==1) + (uber_etc==1) + (taxi==1) + (metro==1) + (bici==1) + (moto==1) + (caminar==1)) > 2,
         evidence = (estrato == 2), n = 10^6
 )
 ```
